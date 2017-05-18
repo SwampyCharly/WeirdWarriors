@@ -147,6 +147,7 @@ public class HBaseApp3
 	        
 	        pv = new PutValue("100 Bullets-2008", columnValues);
 	        putValues.add(pv);
+	        
 	        columnValues = new ArrayList<ColumnValue>();
 	        cv = new ColumnValue("c", "title", "Saga of the Swamp Thing");
 	        columnValues.add(cv);
@@ -163,8 +164,26 @@ public class HBaseApp3
 	        
 	        pv = new PutValue("Saga of the Swamp Thing-1983", columnValues);
 	        putValues.add(pv);
+	        
+	        configurationhbase.put(namespaceString, tableString, columnDescriptors, putValues);
        
-			configurationhbase.put(namespaceString, tableString, columnDescriptors, putValues);
+	        columnValues = new ArrayList<ColumnValue>();
+	        cv = new ColumnValue("c", "title", "Leave it to Chance");
+	        columnValues.add(cv);
+	        cv = new ColumnValue("c", "genre", "magic");
+	        columnValues.add(cv);
+	        cv = new ColumnValue("c", "mainCharacter", "Chance");
+	        columnValues.add(cv);
+	        cv = new ColumnValue("c", "mainAntagonist", "Monsters and gargoyles");
+	        columnValues.add(cv);
+	        cv = new ColumnValue("a", "writer", "James Robinson");
+	        columnValues.add(cv);
+	        cv = new ColumnValue("a", "artist", "Paul Smith");
+	        columnValues.add(cv);
+	        
+	        pv = new PutValue("Leave it to Chance-1997", columnValues);
+	        
+			configurationhbase.put(namespaceString, tableString, columnDescriptors, pv);
 
 			columnValuesOutput = gethbase.getValue(namespaceString, tableString, columnValuesSimple, "Sandman-1978");
 
