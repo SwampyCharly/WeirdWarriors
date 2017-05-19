@@ -33,6 +33,8 @@ public class HBaseImport
 	private static List<String> fields;
 	private JavaHBaseContext HBaseContext;
 	private Admin admin;
+	private static int rowKeyFieldsNumber;
+	private static int[] rowKeyFields;
 	
 	public HBaseImport(String zookeeperPort, String zookeeperNodeHBase) throws IOException
 	{
@@ -51,6 +53,9 @@ public class HBaseImport
 		HBaseContext = new JavaHBaseContext(context, HBaseConfig);
 		Connection HBaseConnection = ConnectionFactory.createConnection(HBaseConfig);
 		admin = HBaseConnection.getAdmin();
+		
+		// Init row key fields number to 0. In this case, row key will be only the first field.
+		rowKeyFieldsNumber = 0;
 		
 		logger.info("Connection to HBase accepted.");
 	}
@@ -109,6 +114,9 @@ public class HBaseImport
 		HBaseContext.bulkPut(lines, tableName, new PutFunction());
 		
 		logger.info("Put done in the table " + tableName + ".");
+		
+		// Init row key fields number for the next use of the function
+		rowKeyFieldsNumber = 0;
 	}	
 	
 	public static String getSeparator() {
@@ -134,6 +142,40 @@ public class HBaseImport
 	public static void setColumnFamilyString(String columnFamilyString) {
 		HBaseImport.columnFamilyString = columnFamilyString;
 	}
+	
+	public void setRowKeyFields(int[] rowKeyFields)
+	{
+		rowKeyFieldsNumber = rowKeyFields.length;
+		HBaseImport.rowKeyFields = new int[rowKeyFieldsNumber];
+		for (int i = 0; i < rowKeyFields.length; i++)
+		{
+			HBaseImport.rowKeyFields[i] = rowKeyFields[i];
+		}
+	}
+
+	public static int getRowKeyFieldsNumber()
+	{
+		return rowKeyFieldsNumber;
+	}
+	
+	public static int[] getRowKeyFields()
+	{
+		return rowKeyFields;
+	}
+	
+	public static String makeRowKey(String[] fields)
+	{
+		String rowKey = "";
+		int[] rowKeyFields = getRowKeyFields();
+		int rowKeyFieldsNumber = getRowKeyFieldsNumber();
+		for (int i = 0; i < rowKeyFieldsNumber; i++)
+		{
+			rowKey += fields[rowKeyFields[i]] + "_"; 
+		}
+		
+		// Ignore the last separator character
+		return rowKey.substring(0, rowKey.length() - 1);
+	}
 
 	public static class PutFunction implements Function<String, Put> 
 	{
@@ -141,10 +183,20 @@ public class HBaseImport
 
 		public Put call(String line) throws Exception 
 	    {
+		  Put put;
 	      String[] part = line.split(getSeparator());
+	      int i = 1;
 
 	      // This function assumes the first field is the id (assigned to the row key)
-	      Put put = new Put(Bytes.toBytes(part[0]));
+	      if (getRowKeyFieldsNumber() == 0)
+	      {
+	    	  put = new Put(Bytes.toBytes(part[0]));
+	      }
+	      else
+	      {
+	    	  put = new Put(Bytes.toBytes(makeRowKey(part)));
+	    	  i = 0;
+	      }
 	      
 	      int fieldsNumber = part.length;
 	      
@@ -156,7 +208,7 @@ public class HBaseImport
 	    	  return put;
 	      }
 	      
-	      for (int i = 1; i < getFields().size(); i++)
+	      for (; i < getFields().size(); i++)
 	      {
 	    	  String field = getFields().get(i);
 	    	  
